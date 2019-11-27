@@ -8,9 +8,10 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-
 	"github.com/jackdanger/collectlinks"
 )
+
+var visited = make(map[string]bool)
 
 func main() {
 	flag.Parse()
@@ -29,6 +30,7 @@ func main() {
 	}()
 
 	for uri := range queue {
+		println("Current Url fetched is ", uri)
 		enqueue(uri, queue)
 	}
 
@@ -36,7 +38,7 @@ func main() {
 
 func enqueue(uri string, queue chan string) {
 	fmt.Println("Fetching uri...")
-
+	visited[uri] = true
 	tlsConfig := &tls.Config{InsecureSkipVerify: true} //skips ssl configured sites
 	transport := &http.Transport{TLSClientConfig: tlsConfig}
 	client := http.Client{Transport: transport}
@@ -52,7 +54,9 @@ func enqueue(uri string, queue chan string) {
 	for _, link := range links {
 		absolute := fixURL(link, uri)
 		if uri != "" {
-			go func() { queue <- absolute }()
+			if !visited[absolute] {
+				go func() { queue <- absolute }()
+			}
 		}
 
 	}
